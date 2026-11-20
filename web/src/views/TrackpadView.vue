@@ -8,6 +8,7 @@ import ScrollRail from '@/components/ScrollRail.vue'
 import TrackpadSurface from '@/components/TrackpadSurface.vue'
 import { layout } from '@/lib/layout'
 import { settings } from '@/lib/settings'
+import { clearTouchpadDebug, downloadTouchpadDebug, touchpadDebug } from '@/lib/touchpadDebug'
 
 const typing = ref(false)
 const composer = ref<InstanceType<typeof Composer>>()
@@ -57,6 +58,19 @@ async function toggleTyping() {
       </TrackpadSurface>
 
       <ClickBar v-if="settings.clickButtons && !typing" :vertical="layout.compact" />
+    </div>
+
+    <div v-if="settings.touchpadDebug" class="rounded-xl border border-sky-400/40 bg-surface-2 p-2 text-[11px]" role="status" aria-label="Touchpad diagnostics">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <strong class="text-sky-400">Touchpad debug · {{ touchpadDebug.count }} events</strong>
+        <div class="flex gap-2">
+          <button type="button" class="rounded-lg border border-line px-2 py-1" @click="clearTouchpadDebug">Clear</button>
+          <button type="button" class="rounded-lg border border-line px-2 py-1" @click="downloadTouchpadDebug">Export JSON</button>
+        </div>
+      </div>
+      <p class="mt-1 text-muted">Raw {{ touchpadDebug.rawDistance.toFixed(1) }}px · Queued {{ touchpadDebug.queuedDistance.toFixed(1) }}px · Socket {{ touchpadDebug.sentDistance.toFixed(1) }}px</p>
+      <p class="text-muted">Last Δ ({{ touchpadDebug.lastDeltaX.toFixed(1) }}, {{ touchpadDebug.lastDeltaY.toFixed(1) }}) · Pointer {{ touchpadDebug.lastPointerId ?? '—' }} · Mac receipt/cursor distance unavailable</p>
+      <p v-if="touchpadDebug.overwritten" class="text-amber-400">{{ touchpadDebug.overwritten }} older events overwritten</p>
     </div>
 
     <div v-if="typing">
