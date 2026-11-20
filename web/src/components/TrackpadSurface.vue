@@ -32,6 +32,10 @@ const acceleration = new PointerGain()
 const gain = (dx: number, dy: number, dt: number) =>
   acceleration.gain(dx, dy, dt, { speed: settings.pointerSpeed, acceleration: settings.pointerAcceleration })
 
+const feedback = (kind: Parameters<typeof haptic>[0]) => {
+  if (settings.trackpadHaptics) haptic(kind)
+}
+
 const scrollScale = () => settings.scrollSpeed * 1.6
 // Natural scrolling: content follows the fingers.
 const scrollSign = () => (settings.naturalScroll ? 1 : -1)
@@ -40,7 +44,7 @@ function runGesture(map: GestureMap, slot: keyof GestureMap) {
   const action = map[slot]
   if (!action) return
   void runAction(action).then((result) => {
-    if (!result.ok && result.message) haptic('error')
+    if (!result.ok && result.message) feedback('error')
   })
 }
 
@@ -55,6 +59,7 @@ const handler: GestureHandler = {
     pointer.move(dx * g, dy * g)
   },
   scroll: (phase, dx, dy) => {
+    if (phase === ScrollPhase.Began) feedback('select')
     const k = scrollScale() * scrollSign()
     pointer.scroll(phase, dx * k, dy * k)
   },
@@ -66,6 +71,7 @@ const handler: GestureHandler = {
   buttonDown: (button) => {
     buttonDown(button)
     dragging.value = true
+    feedback('medium')
   },
   buttonUp: (button) => {
     buttonUp(button)
@@ -78,7 +84,7 @@ const handler: GestureHandler = {
   zoom: (phase, delta) => pointer.gesture(GestureKind.Zoom, phase, delta),
   rotate: (phase, degrees) => pointer.gesture(GestureKind.Rotate, phase, degrees),
   smartZoom: () => pointer.gesture(GestureKind.SmartZoom, ScrollPhase.None, 0),
-  feedback: (kind) => haptic(kind),
+  feedback: (kind) => feedback(kind),
 }
 
 const options = computed(() => ({
