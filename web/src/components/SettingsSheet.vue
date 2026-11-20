@@ -228,6 +228,17 @@ const times = (v: number) => `${v.toFixed(1)}×`
             <Toggle v-model="settings.dragLock" label="Drag lock" hint="Drags continue after lifting your finger until you tap." />
             <Toggle v-model="settings.showTouches" label="Show touches" />
           </section>
+          <h3 class="section">Touch feedback</h3>
+          <section class="card">
+            <Toggle
+              v-model="settings.trackpadHaptics"
+              label="Trackpad haptic feedback"
+              hint="Feel clicks, drag starts and gestures when your phone supports it. On iPhone, browser restrictions may limit feedback to actual taps."
+              :disabled="!hapticsSupported || !settings.haptics"
+            />
+            <p v-if="!hapticsSupported" class="pb-3 text-[13px] text-muted">This browser does not offer supported haptic feedback.</p>
+            <p v-else-if="!settings.haptics" class="pb-3 text-[13px] text-muted">Enable Haptic feedback under This device first.</p>
+          </section>
           <h3 class="section">Scrolling</h3>
           <section class="card">
             <RangeRow v-model="settings.scrollSpeed" label="Scroll speed" :min="0.2" :max="4" :step="0.05" :format="times" />
