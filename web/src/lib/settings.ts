@@ -34,6 +34,9 @@ export interface Settings {
   keyboard: 'auto' | 'mac' | 'custom' | 'phone'
   functionRow: 'media' | 'function'
   /** On a phone held upright, the Mac keyboard fills the screen turned on its side. */
+  sidewaysTrackpad: boolean
+  /** The direction used when the trackpad is turned sideways on an upright phone. */
+  sidewaysTrackpadTurn: 'left' | 'right'
   sidewaysKeyboard: boolean
   /** Which way the phone is turned to read it. */
   sidewaysTurn: 'left' | 'right'
@@ -108,6 +111,8 @@ export function defaultSettings(): Settings {
     },
     keyboard: 'auto',
     functionRow: 'media',
+    sidewaysTrackpad: false,
+    sidewaysTrackpadTurn: 'left',
     sidewaysKeyboard: false,
     sidewaysTurn: 'left',
     displayControls: 'trackpad',
@@ -148,6 +153,7 @@ const CHOICES: Partial<Record<keyof Settings, readonly string[]>> = {
   keyboard: ['auto', 'mac', 'custom', 'phone'],
   functionRow: ['media', 'function'],
   sidewaysTurn: ['left', 'right'],
+  sidewaysTrackpadTurn: ['left', 'right'],
   displayControls: ['view', 'trackpad', 'keyboard'],
   displayQuality: ['auto', 'battery', 'sharp', 'original'],
   textMode: ['unicode', 'keystrokes', 'paste'],
