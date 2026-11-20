@@ -6,7 +6,7 @@ import { haptic, holdPointer } from '@/lib/haptics'
 import { onPageHidden } from '@/lib/heldPointers'
 import { beginPointerGesture, buttonDown, buttonUp, click, tap } from '@/lib/input'
 import { Key } from '@/lib/keys'
-import { layout } from '@/lib/layout'
+import { layout, sidewaysTrackpad } from '@/lib/layout'
 import { PointerGain } from '@/lib/pointerGain'
 import { GestureKind, Mod, ScrollPhase } from '@/lib/protocol'
 import { settings, type GestureMap } from '@/lib/settings'
@@ -97,6 +97,7 @@ const options = computed(() => ({
 
 const recognizer = new GestureRecognizer(handler, options.value)
 watch(options, (value) => (recognizer.options = value))
+watch([sidewaysTrackpad, () => settings.sidewaysTrackpadTurn], () => recognizer.reset())
 function resetSurface() {
   recognizer.reset()
   dragging.value = false
@@ -111,7 +112,19 @@ onPageHidden(resetSurface)
 
 function local(event: PointerEvent) {
   const rect = surface.value!.getBoundingClientRect()
+  if (sidewaysTrackpad.value) {
+    return settings.sidewaysTrackpadTurn === 'left'
+      ? { x: event.clientY - rect.top, y: rect.right - event.clientX }
+      : { x: rect.bottom - event.clientY, y: event.clientX - rect.left }
+  }
   return { x: event.clientX - rect.left, y: event.clientY - rect.top }
+}
+
+function gesturePoint(event: PointerEvent) {
+  if (!sidewaysTrackpad.value) return { x: event.clientX, y: event.clientY }
+  return settings.sidewaysTrackpadTurn === 'left'
+    ? { x: event.clientY, y: -event.clientX }
+    : { x: -event.clientY, y: event.clientX }
 }
 
 function onDown(event: PointerEvent) {
@@ -120,7 +133,8 @@ function onDown(event: PointerEvent) {
   surface.value?.setPointerCapture(event.pointerId)
   const p = local(event)
   touches.set(event.pointerId, p)
-  recognizer.down(event.pointerId, event.clientX, event.clientY, event.timeStamp)
+  const pGesture = gesturePoint(event)
+  recognizer.down(event.pointerId, pGesture.x, pGesture.y, event.timeStamp)
 }
 
 function onMove(event: PointerEvent) {
@@ -129,7 +143,8 @@ function onMove(event: PointerEvent) {
   if (settings.showTouches) touches.set(event.pointerId, local(event))
   const events = typeof event.getCoalescedEvents === 'function' ? event.getCoalescedEvents() : []
   for (const e of events.length ? events : [event]) {
-    recognizer.move(event.pointerId, e.clientX, e.clientY, e.timeStamp)
+    const p = gesturePoint(e)
+    recognizer.move(event.pointerId, p.x, p.y, e.timeStamp)
   }
 }
 
