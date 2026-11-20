@@ -30,7 +30,7 @@ export type SyncedSettings = {
 export const COPY_CATEGORIES = [
   {
     id: 'trackpad', label: 'Trackpad', hint: 'Pointer, clicks and scrolling',
-    keys: ['sidewaysTrackpad', 'sidewaysTrackpadTurn', 'pointerSpeed', 'pointerAcceleration', 'tapToClick', 'twoFingerTapRightClick', 'longPress', 'tapAndDrag', 'dragLock', 'clickButtons', 'scrollSpeed', 'naturalScroll', 'momentum', 'scrollStrip', 'scrollStripSide', 'scrollStripWidth', 'scrollStripEdge', 'scrollHold', 'showTouches'],
+    keys: ['sidewaysTrackpad', 'sidewaysTrackpadTurn', 'pointerSpeed', 'pointerAcceleration', 'tapToClick', 'twoFingerTapRightClick', 'longPress', 'tapAndDrag', 'dragLock', 'clickButtons', 'scrollSpeed', 'naturalScroll', 'momentum', 'scrollStrip', 'scrollStripSide', 'scrollStripWidth', 'scrollStripEdge', 'scrollHold', 'showTouches', 'trackpadHaptics'],
   },
   {
     id: 'gestures', label: 'Gestures', hint: 'Pinch, rotate and finger gestures',
