@@ -1,20 +1,37 @@
 <script setup lang="ts">
 import { Keyboard, KeyboardOff } from '@lucide/vue'
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import ClickBar from '@/components/ClickBar.vue'
 import Composer from '@/components/Composer.vue'
 import ModifierStrip from '@/components/ModifierStrip.vue'
 import ScrollRail from '@/components/ScrollRail.vue'
 import TrackpadSurface from '@/components/TrackpadSurface.vue'
-import { layout } from '@/lib/layout'
+import { layout, sidewaysTrackpad } from '@/lib/layout'
 import { settings } from '@/lib/settings'
 
 const typing = ref(false)
 const composer = ref<InstanceType<typeof Composer>>()
 const touched = ref(false)
+const root = ref<HTMLElement>()
+const size = ref({ width: 0, height: 0 })
+let observer: ResizeObserver | undefined
+onMounted(() => {
+  observer = new ResizeObserver(([entry]) => {
+    if (entry) size.value = { width: entry.contentRect.width, height: entry.contentRect.height }
+  })
+  if (root.value) observer.observe(root.value)
+})
+onBeforeUnmount(() => observer?.disconnect())
+
+const compact = computed(() => layout.compact || sidewaysTrackpad.value)
+const sidewaysStyle = computed(() => sidewaysTrackpad.value ? {
+  width: `${size.value.height}px`,
+  height: `${size.value.width}px`,
+  transform: `translate(-50%, -50%) rotate(${settings.sidewaysTrackpadTurn === 'left' ? 90 : -90}deg)`,
+} : undefined)
 
 // On a landscape phone the click buttons sit right of the trackpad.
-const atEdge = computed(() => !layout.compact || typing.value || settings.scrollStripSide !== 'right' || !settings.clickButtons)
+const atEdge = computed(() => !compact.value || typing.value || settings.scrollStripSide !== 'right' || !settings.clickButtons)
 
 async function toggleTyping() {
   typing.value = !typing.value
@@ -26,14 +43,15 @@ async function toggleTyping() {
 </script>
 
 <template>
-  <div class="flex h-full flex-col gap-2 px-2 pt-1 pb-2" :class="layout.compact && 'pt-2'">
+  <div ref="root" class="relative h-full w-full overflow-hidden">
+    <div class="flex h-full flex-col gap-2 px-2 pt-1 pb-2" :class="[compact && 'pt-2', sidewaysTrackpad && 'absolute top-1/2 left-1/2']" :style="sidewaysStyle">
     <!-- Landscape phones put the keys and buttons beside the trackpad. -->
-    <div class="flex min-h-0 flex-1 gap-2" :class="!layout.compact && 'flex-col'">
-      <ModifierStrip v-if="!typing" :vertical="layout.compact">
+    <div class="flex min-h-0 flex-1 gap-2" :class="!compact && 'flex-col'">
+      <ModifierStrip v-if="!typing" :vertical="compact">
         <button
           type="button"
           class="key grid shrink-0 place-items-center rounded-[9px] bg-key text-muted active:bg-key-down"
-          :class="layout.compact ? 'min-h-0 flex-1' : 'w-12'"
+          :class="compact ? 'min-h-0 flex-1' : 'w-12'"
           aria-label="Type on the Mac"
           @click="toggleTyping"
         >
@@ -56,7 +74,7 @@ async function toggleTyping() {
         </div>
       </TrackpadSurface>
 
-      <ClickBar v-if="settings.clickButtons && !typing" :vertical="layout.compact" />
+      <ClickBar v-if="settings.clickButtons && !typing" :vertical="compact" />
     </div>
 
     <div v-if="typing">
@@ -68,6 +86,7 @@ async function toggleTyping() {
       >
         <KeyboardOff :size="16" /> Hide typing
       </button>
+    </div>
     </div>
   </div>
 </template>

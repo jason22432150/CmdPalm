@@ -34,6 +34,9 @@ export interface Settings {
   keyboard: 'auto' | 'mac' | 'custom' | 'phone'
   functionRow: 'media' | 'function'
   /** On a phone held upright, the Mac keyboard fills the screen turned on its side. */
+  sidewaysTrackpad: boolean
+  /** The direction used when the trackpad is turned sideways on an upright phone. */
+  sidewaysTrackpadTurn: 'left' | 'right'
   sidewaysKeyboard: boolean
   /** Which way the phone is turned to read it. */
   sidewaysTurn: 'left' | 'right'
@@ -47,6 +50,8 @@ export interface Settings {
   /** Deck button size on this device, relative to a phone held upright. */
   deckButtonSize: number
   haptics: boolean
+  /** Feedback on trackpad clicks, gestures, and the start of scrolling. */
+  trackpadHaptics: boolean
   /** A tap felt on each key press. */
   keyHaptics: boolean
   theme: 'system' | 'dark' | 'light'
@@ -108,6 +113,8 @@ export function defaultSettings(): Settings {
     },
     keyboard: 'auto',
     functionRow: 'media',
+    sidewaysTrackpad: false,
+    sidewaysTrackpadTurn: 'left',
     sidewaysKeyboard: false,
     sidewaysTurn: 'left',
     displayControls: 'trackpad',
@@ -119,6 +126,7 @@ export function defaultSettings(): Settings {
     liveTyping: true,
     deckButtonSize: 1,
     haptics: true,
+    trackpadHaptics: true,
     keyHaptics: true,
     theme: 'system',
     keepAwake: true,
@@ -148,6 +156,7 @@ const CHOICES: Partial<Record<keyof Settings, readonly string[]>> = {
   keyboard: ['auto', 'mac', 'custom', 'phone'],
   functionRow: ['media', 'function'],
   sidewaysTurn: ['left', 'right'],
+  sidewaysTrackpadTurn: ['left', 'right'],
   displayControls: ['view', 'trackpad', 'keyboard'],
   displayQuality: ['auto', 'battery', 'sharp', 'original'],
   textMode: ['unicode', 'keystrokes', 'paste'],

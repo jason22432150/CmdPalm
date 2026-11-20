@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 
 import { pointer, state } from '@/lib/connection'
 import { haptic } from '@/lib/haptics'
 import { beginPointerGesture } from '@/lib/input'
+import { sidewaysTrackpad } from '@/lib/layout'
 import { ScrollPhase } from '@/lib/protocol'
 import { settings } from '@/lib/settings'
 
@@ -42,6 +43,10 @@ let samples: { t: number; dy: number }[] = []
 let began = false
 let holdTimer: ReturnType<typeof setInterval> | undefined
 let lastTick = 0
+
+const scrollPosition = (event: PointerEvent) => !sidewaysTrackpad.value
+  ? event.clientY
+  : settings.sidewaysTrackpadTurn === 'left' ? -event.clientX : event.clientX
 
 const scale = () => settings.scrollSpeed * 1.6 * (settings.naturalScroll ? 1 : -1)
 
@@ -88,7 +93,7 @@ function down(event: PointerEvent) {
   event.stopPropagation()
   ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
   active.value = event.pointerId
-  startY = lastY = event.clientY
+  startY = lastY = scrollPosition(event)
   // Layout sizes, unaffected by the handle's transform while it springs back.
   travel = Math.max(0, ((track.value?.clientHeight ?? 0) - (handle.value?.clientHeight ?? 0)) / 2)
   offset.value = 0
@@ -99,9 +104,10 @@ function down(event: PointerEvent) {
 
 function move(event: PointerEvent) {
   if (event.pointerId !== active.value) return
-  const dy = event.clientY - lastY
-  lastY = event.clientY
-  const along = event.clientY - startY
+  const position = scrollPosition(event)
+  const dy = position - lastY
+  lastY = position
+  const along = position - startY
   offset.value = Math.max(-travel, Math.min(travel, along))
   updateHold(along)
   if (dy === 0) return
@@ -144,6 +150,7 @@ watch(
   },
 )
 watch(() => settings.scrollStrip, abandon)
+watch([sidewaysTrackpad, () => settings.sidewaysTrackpadTurn], abandon)
 onDeactivated(abandon)
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', onVisibility)
