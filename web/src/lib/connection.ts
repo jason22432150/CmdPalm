@@ -24,6 +24,7 @@ import {
   type VolumeState,
 } from './protocol'
 import { settings } from './settings'
+import { recordWebSocketMove } from './touchpadDebug'
 
 export type Status =
   | 'idle' // never paired on this origin
@@ -483,8 +484,12 @@ export const pointer = (() => {
       return
     }
     if (mx !== 0 || my !== 0) {
-      sendBinary(encodeMove(mx, my))
-      mx = my = 0
+      const dx = mx
+      const dy = my
+      const buffered = ws.bufferedAmount
+      const accepted = sendBinary(encodeMove(dx, dy))
+      recordWebSocketMove(dx, dy, accepted, buffered)
+      if (accepted) mx = my = 0
     }
     if (scrollPhase !== ScrollPhase.None) {
       sendBinary(encodeScroll(scrollPhase, sx, sy))
