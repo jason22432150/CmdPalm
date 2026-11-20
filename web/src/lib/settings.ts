@@ -50,6 +50,8 @@ export interface Settings {
   /** Deck button size on this device, relative to a phone held upright. */
   deckButtonSize: number
   haptics: boolean
+  /** Feedback on trackpad clicks, gestures, and the start of scrolling. */
+  trackpadHaptics: boolean
   /** A tap felt on each key press. */
   keyHaptics: boolean
   theme: 'system' | 'dark' | 'light'
@@ -124,6 +126,7 @@ export function defaultSettings(): Settings {
     liveTyping: true,
     deckButtonSize: 1,
     haptics: true,
+    trackpadHaptics: true,
     keyHaptics: true,
     theme: 'system',
     keepAwake: true,
