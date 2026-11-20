@@ -52,7 +52,7 @@ export interface Settings {
   theme: 'system' | 'dark' | 'light'
   keepAwake: boolean
   showTouches: boolean
-  /** Device-local opt-in diagnostics; not synced to the Mac. */
+  /** Opt-in diagnostics; recorded events remain in browser memory only. */
   touchpadDebug: boolean
   rememberDevice: boolean
   deviceName: string
