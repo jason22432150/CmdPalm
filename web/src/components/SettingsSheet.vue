@@ -184,7 +184,24 @@ const times = (v: number) => `${v.toFixed(1)}×`
       <p class="mb-3 mt-1 text-center text-[12px] text-muted">Changes save automatically on this device.</p>
       <section id="settings-feature-panel" role="tabpanel" :aria-labelledby="`settings-tab-${feature}`">
         <template v-if="feature === 'trackpad'">
-          <h3 class="section mt-0!">Point & click</h3>
+          <h3 class="section mt-0!">Layout</h3>
+          <section class="card">
+            <Toggle
+              v-model="settings.sidewaysTrackpad"
+              label="Sideways trackpad"
+              hint="Rotate the trackpad 90° while the phone stays upright, even with screen rotation locked."
+            />
+            <Segmented
+              v-if="settings.sidewaysTrackpad"
+              v-model="settings.sidewaysTrackpadTurn"
+              label="Turn the phone"
+              :options="[
+                { value: 'left', label: 'To the left' },
+                { value: 'right', label: 'To the right' },
+              ]"
+            />
+          </section>
+          <h3 class="section">Point & click</h3>
           <section class="card">
             <RangeRow v-model="settings.pointerSpeed" label="Pointer speed" :min="0.2" :max="4" :step="0.05" :format="times" />
             <Toggle v-model="settings.tapToClick" label="Tap to click" />
