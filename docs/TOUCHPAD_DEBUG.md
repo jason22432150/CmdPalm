@@ -37,6 +37,7 @@ The Mac trace is **in-memory only**, capped at **4,000 entries** (a separate rin
 | `socketDecoded` | A validated binary Move packet was decoded by the Mac's WebSocket session. Includes session number and relative dx/dy. |
 | `engineQueued` | The input engine accepted the relative movement into its pacer. Includes queued delta and pending pacer totals. |
 | `engineDropped` | The input engine ignored movement because control was paused or the session was stopped. |
+| `accessibilityDenied` | The Mac's Accessibility permission check did not allow synthesized control; the usual permission notice is also emitted. |
 | `enginePosted` | The pacer emitted a movement event toward the platform input sink. |
 | `macEventPosted` | macOS event posting was invoked. Includes starting coordinate, clamped target, whether the display edge was hit, and OS cursor position sampled *immediately after* posting. |
 | `macEventCreationFailed` | macOS could not construct a mouse event. |
@@ -52,6 +53,7 @@ Mac events have `atUnixMs` (wall clock milliseconds) and `seq` (local processing
 - Queued substantial but Socket tiny: inspect coalescing and WebSocket congestion. Opposing deltas can legitimately cancel in a coalesced packet.
 - Phone Socket moves but no Mac `socketDecoded` events: inspect the connection or Mac-side session before the input engine. Browser WebSocket acceptance is not delivery acknowledgement.
 - Mac `socketDecoded` but no `engineQueued`: inspect `engineDropped`, paused state and session interruption.
+- An `accessibilityDenied` event indicates that macOS control permission needs to be repaired before pointer behavior can be judged.
 - Mac `engineQueued` / `enginePosted` but macOS targets stay at the screen boundary: inspect `macEventPosted.clamped`.
 - Mac targets move, but immediate OS observations remain still: examine the Mac's accessibility permission, posting behavior and delayed cursor samples; immediate observations may be stale.
 
