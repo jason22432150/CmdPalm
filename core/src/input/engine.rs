@@ -619,6 +619,15 @@ impl<S: EventSink> Engine<S> {
             self.post_move(dx, dy);
         }
         if !matches!(input, Input::ReleaseAll | Input::Touch) && !self.sink.can_post() {
+            if let Input::Move { dx, dy } = &input {
+                if crate::touchpad_debug::enabled() {
+                    crate::touchpad_debug::record("accessibilityDenied", serde_json::json!({
+                        "session": session,
+                        "dx": dx,
+                        "dy": dy,
+                    }));
+                }
+            }
             self.notice(Notice::NoPermission(session), now);
         }
         if matches!(
