@@ -52,7 +52,7 @@ describe('opt-in touchpad diagnostics', () => {
     settings.touchpadDebug = true
     recordWebSocketMove(10, 4, false, 65536)
     expect(touchpadDebug.sentDistance).toBe(0)
-    expect(touchpadDebugSnapshot().events[0].socketAccepted).toBe(false)
+    expect(touchpadDebugSnapshot().events[0]?.socketAccepted).toBe(false)
   })
 
   it('keeps a bounded chronological ring buffer and supports clearing', () => {
@@ -61,7 +61,7 @@ describe('opt-in touchpad diagnostics', () => {
     const snap = touchpadDebugSnapshot()
     expect(snap.events).toHaveLength(MAX_TOUCHPAD_DEBUG_EVENTS)
     expect(snap.overwritten).toBe(9)
-    expect(snap.events[0].reason).toBe('test-9')
+    expect(snap.events[0]?.reason).toBe('test-9')
     expect(snap.events.at(-1)?.reason).toBe('test-' + (MAX_TOUCHPAD_DEBUG_EVENTS + 8))
     clearTouchpadDebug()
     expect(touchpadDebugSnapshot().events).toEqual([])
