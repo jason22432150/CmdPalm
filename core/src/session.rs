@@ -921,7 +921,19 @@ impl Connection {
     fn binary(&mut self, data: &[u8]) {
         let Some(&op) = data.first() else { return };
         let input = match (op, data.len()) {
-            (binary::MOVE, 9) => f32_at(data, 1).zip(f32_at(data, 5)).map(|(dx, dy)| Input::Move { dx, dy }),
+            (binary::MOVE, 9) => {
+                let decoded = f32_at(data, 1).zip(f32_at(data, 5));
+                if let Some((dx, dy)) = decoded {
+                    if crate::touchpad_debug::enabled() {
+                        crate::touchpad_debug::record("socketDecoded", serde_json::json!({
+                            "session": self.id,
+                            "dx": dx,
+                            "dy": dy,
+                        }));
+                    }
+                }
+                decoded.map(|(dx, dy)| Input::Move { dx, dy })
+            },
             (binary::SCROLL, 10) => {
                 f32_at(data, 2).zip(f32_at(data, 6)).map(|(dx, dy)| Input::Scroll { phase: data[1], dx, dy })
             }

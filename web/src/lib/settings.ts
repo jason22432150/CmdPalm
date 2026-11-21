@@ -52,6 +52,8 @@ export interface Settings {
   theme: 'system' | 'dark' | 'light'
   keepAwake: boolean
   showTouches: boolean
+  /** Opt-in diagnostics; recorded events remain in browser memory only. */
+  touchpadDebug: boolean
   rememberDevice: boolean
   deviceName: string
   tab: Tab
@@ -123,6 +125,7 @@ export function defaultSettings(): Settings {
     theme: 'system',
     keepAwake: true,
     showTouches: true,
+    touchpadDebug: false,
     rememberDevice: true,
     deviceName: '',
     tab: 'trackpad',
