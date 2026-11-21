@@ -312,6 +312,11 @@ impl MacSink {
             Some(other) => (CGEventType::OtherMouseDragged, CGMouseButton(button_number(other))),
         };
         let Some(event) = CGEvent::new_mouse_event(self.source(), event_type, target, button) else {
+            if crate::touchpad_debug::enabled() {
+                crate::touchpad_debug::record("macEventCreationFailed", serde_json::json!({
+                    "dx": dx, "dy": dy,
+                }));
+            }
             return;
         };
         // Raw deltas matter to games, 3D tools and pointer-locked web pages.
@@ -333,6 +338,21 @@ impl MacSink {
         let caps = self.caps_flag();
         CGEvent::set_flags(Some(&event), CGEventFlags(event_flags | caps));
         Self::post(&event);
+        if crate::touchpad_debug::enabled() {
+            let observed = self.os_cursor();
+            crate::touchpad_debug::record("macEventPosted", serde_json::json!({
+                "dx": dx,
+                "dy": dy,
+                "startX": start.x,
+                "startY": start.y,
+                "targetX": target.x,
+                "targetY": target.y,
+                "clamped": (start.x + dx - target.x).abs() > 0.001 || (start.y + dy - target.y).abs() > 0.001,
+                "observedAfterImmediateX": observed.x,
+                "observedAfterImmediateY": observed.y,
+                "observationMayBeStale": true,
+            }));
+        }
         self.position = Some(target);
     }
 
