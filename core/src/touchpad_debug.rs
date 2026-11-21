@@ -3,10 +3,8 @@
 //! No event is recorded unless explicitly enabled from the Mac's Advanced settings.
 
 use std::collections::VecDeque;
-use std::sync::{
-    Mutex, OnceLock,
-    atomic::{AtomicBool, Ordering},
-};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::{Value, json};
@@ -77,8 +75,9 @@ pub fn record(stage: &'static str, details: Value) {
         trace.events.pop_front();
         trace.overwritten += 1;
     }
+    let sequence = trace.next_sequence;
     trace.events.push_back(json!({
-        "seq": trace.next_sequence,
+        "seq": sequence,
         "atUnixMs": now_ms(),
         "stage": stage,
         "data": details,
@@ -126,10 +125,10 @@ mod tests {
         }
         set_enabled(false);
         let snapshot: Value = serde_json::from_str(&snapshot_json()).unwrap();
-        assert_eq!(snapshot["count"], MAX_EVENTS);
+        assert_eq!(snapshot["count"], json!(MAX_EVENTS));
         assert_eq!(snapshot["overwritten"], 3);
         assert_eq!(snapshot["events"][0]["data"]["dx"], 3);
-        assert_eq!(snapshot["events"][MAX_EVENTS - 1]["data"]["dx"], MAX_EVENTS + 2);
+        assert_eq!(snapshot["events"][MAX_EVENTS - 1]["data"]["dx"], json!(MAX_EVENTS + 2));
         assert_eq!(snapshot["enabled"], false);
 
         clear();
