@@ -27,6 +27,8 @@ final class HostController {
     var notice: String?
     /// Name of the most recently paired device, for the welcome guide.
     private(set) var lastPaired: String?
+    /// This session's Mac-side diagnostic capture; intentionally not persisted.
+    private(set) var touchpadDiagnosticsEnabled = false
 
     let preferences: Preferences
     let permissions: Permissions
@@ -163,12 +165,26 @@ final class HostController {
     /// Stops serving and releases anything the phone was holding down, before
     /// the app quits.
     func shutdown() {
+        host.setTouchpadDiagnosticsEnabled(enabled: false)
         network.cancel()
         host.stop()
         bridge.pasteboard.endPendingPastes()
     }
 
     // MARK: Actions
+
+    func setTouchpadDiagnosticsEnabled(_ enabled: Bool) {
+        host.setTouchpadDiagnosticsEnabled(enabled: enabled)
+        touchpadDiagnosticsEnabled = enabled
+    }
+
+    func clearTouchpadDiagnostics() {
+        host.clearTouchpadDiagnostics()
+    }
+
+    func touchpadDiagnosticsJSON() -> String {
+        host.touchpadDiagnosticsJson()
+    }
 
     func setPaused(_ paused: Bool) {
         host.setPaused(paused: paused)
