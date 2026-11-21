@@ -39,6 +39,22 @@ struct AdvancedPane: View {
             }
 
             Section("Troubleshooting") {
+                Toggle(isOn: Binding(
+                    get: { host.touchpadDiagnosticsEnabled },
+                    set: { host.setTouchpadDiagnosticsEnabled($0) }
+                )) {
+                    Text("Capture touchpad diagnostics")
+                    Text("Records received movement, input-engine pacing, event targets and immediately observed cursor positions. Off by default; kept in memory.")
+                }
+                LabeledContent {
+                    HStack {
+                        Button("Export Touchpad JSON") { exportTouchpadDiagnostics() }
+                        Button("Clear Capture") { host.clearTouchpadDiagnostics() }
+                    }
+                } label: {
+                    Text("Touchpad capture")
+                    Text("Export to a local JSON file; no typing, pairing tokens or network addresses are recorded. Up to 4,000 events.")
+                }
                 Picker(selection: $preferences.logLevel) {
                     ForEach(Preferences.LogLevel.allCases) { level in
                         Text(level.title).tag(level)
@@ -69,6 +85,21 @@ struct AdvancedPane: View {
             }
         }
         .settingsForm()
+    }
+
+    private func exportTouchpadDiagnostics() {
+        let json = host.touchpadDiagnosticsJSON()
+        let panel = NSSavePanel()
+        panel.title = "Export CmdPalm Touchpad Diagnostics"
+        panel.nameFieldStringValue = "cmdpalm-mac-touchpad-\(ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")).json"
+        panel.canCreateDirectories = true
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                try json.write(to: url, atomically: true, encoding: .utf8)
+            } catch {
+                NSAlert(error: error).runModal()
+            }
+        }
     }
 
     private var statusText: String {
