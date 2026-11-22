@@ -185,7 +185,24 @@ const times = (v: number) => `${v.toFixed(1)}×`
       <p class="mb-3 mt-1 text-center text-[12px] text-muted">Changes save automatically on this device.</p>
       <section id="settings-feature-panel" role="tabpanel" :aria-labelledby="`settings-tab-${feature}`">
         <template v-if="feature === 'trackpad'">
-          <h3 class="section mt-0!">Point & click</h3>
+          <h3 class="section mt-0!">Layout</h3>
+          <section class="card">
+            <Toggle
+              v-model="settings.sidewaysTrackpad"
+              label="Sideways trackpad"
+              hint="Rotate the trackpad 90° while the phone stays upright, even with screen rotation locked."
+            />
+            <Segmented
+              v-if="settings.sidewaysTrackpad"
+              v-model="settings.sidewaysTrackpadTurn"
+              label="Turn the phone"
+              :options="[
+                { value: 'left', label: 'To the left' },
+                { value: 'right', label: 'To the right' },
+              ]"
+            />
+          </section>
+          <h3 class="section">Point & click</h3>
           <section class="card">
             <RangeRow v-model="settings.pointerSpeed" label="Pointer speed" :min="0.2" :max="4" :step="0.05" :format="times" />
             <Toggle v-model="settings.tapToClick" label="Tap to click" />
@@ -222,6 +239,17 @@ const times = (v: number) => `${v.toFixed(1)}×`
               class="my-2 rounded-lg border border-line px-3 py-2 text-[13px]"
               @click="clearTouchpadDebug"
             >Clear touchpad debug log</button>
+          </section>
+          <h3 class="section">Touch feedback</h3>
+          <section class="card">
+            <Toggle
+              v-model="settings.trackpadHaptics"
+              label="Trackpad haptic feedback"
+              hint="Feel clicks, drag starts and gestures when your phone supports it. On iPhone, browser restrictions may limit feedback to actual taps."
+              :disabled="!hapticsSupported || !settings.haptics"
+            />
+            <p v-if="!hapticsSupported" class="pb-3 text-[13px] text-muted">This browser does not offer supported haptic feedback.</p>
+            <p v-else-if="!settings.haptics" class="pb-3 text-[13px] text-muted">Enable Haptic feedback under This device first.</p>
           </section>
           <h3 class="section">Scrolling</h3>
           <section class="card">

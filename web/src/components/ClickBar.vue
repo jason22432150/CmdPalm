@@ -4,6 +4,7 @@ import { haptic, holdPointer } from '@/lib/haptics'
 import { onPageHidden } from '@/lib/heldPointers'
 import { buttonDown, buttonUp, click } from '@/lib/input'
 import type { MouseButton } from '@/lib/protocol'
+import { settings } from '@/lib/settings'
 import HapticSwitch from './HapticSwitch.vue'
 
 withDefaults(defineProps<{ vertical?: boolean }>(), { vertical: false })
@@ -18,7 +19,7 @@ function down(button: MouseButton, event: PointerEvent) {
   ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
   held.value[button] = event.pointerId
   buttonDown(button)
-  haptic('light')
+  if (settings.trackpadHaptics) haptic('light')
 }
 
 function up(button: MouseButton, event: PointerEvent) {

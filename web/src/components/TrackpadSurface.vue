@@ -6,7 +6,7 @@ import { haptic, holdPointer } from '@/lib/haptics'
 import { onPageHidden } from '@/lib/heldPointers'
 import { beginPointerGesture, buttonDown, buttonUp, click, tap } from '@/lib/input'
 import { Key } from '@/lib/keys'
-import { layout } from '@/lib/layout'
+import { layout, sidewaysTrackpad } from '@/lib/layout'
 import { PointerGain } from '@/lib/pointerGain'
 import { recordGestureMove, recordPointer, recordTouchpadReset } from '@/lib/touchpadDebug'
 import { GestureKind, Mod, ScrollPhase } from '@/lib/protocol'
@@ -38,6 +38,10 @@ const acceleration = new PointerGain()
 const gain = (dx: number, dy: number, dt: number) =>
   acceleration.gain(dx, dy, dt, { speed: settings.pointerSpeed, acceleration: settings.pointerAcceleration })
 
+const feedback = (kind: Parameters<typeof haptic>[0]) => {
+  if (settings.trackpadHaptics) haptic(kind)
+}
+
 const scrollScale = () => settings.scrollSpeed * 1.6
 // Natural scrolling: content follows the fingers.
 const scrollSign = () => (settings.naturalScroll ? 1 : -1)
@@ -46,7 +50,7 @@ function runGesture(map: GestureMap, slot: keyof GestureMap) {
   const action = map[slot]
   if (!action) return
   void runAction(action).then((result) => {
-    if (!result.ok && result.message) haptic('error')
+    if (!result.ok && result.message) feedback('error')
   })
 }
 
@@ -62,6 +66,7 @@ const handler: GestureHandler = {
     pointer.move(dx * g, dy * g)
   },
   scroll: (phase, dx, dy) => {
+    if (phase === ScrollPhase.Began) feedback('select')
     const k = scrollScale() * scrollSign()
     pointer.scroll(phase, dx * k, dy * k)
   },
@@ -73,6 +78,7 @@ const handler: GestureHandler = {
   buttonDown: (button) => {
     buttonDown(button)
     dragging.value = true
+    feedback('medium')
   },
   buttonUp: (button) => {
     buttonUp(button)
@@ -85,7 +91,7 @@ const handler: GestureHandler = {
   zoom: (phase, delta) => pointer.gesture(GestureKind.Zoom, phase, delta),
   rotate: (phase, degrees) => pointer.gesture(GestureKind.Rotate, phase, degrees),
   smartZoom: () => pointer.gesture(GestureKind.SmartZoom, ScrollPhase.None, 0),
-  feedback: (kind) => haptic(kind),
+  feedback: (kind) => feedback(kind),
 }
 
 const options = computed(() => ({
@@ -104,6 +110,7 @@ const options = computed(() => ({
 
 const recognizer = new GestureRecognizer(handler, options.value)
 watch(options, (value) => (recognizer.options = value))
+watch([sidewaysTrackpad, () => settings.sidewaysTrackpadTurn], resetSurface)
 function resetSurface() {
   recordTouchpadReset('deactivated or page hidden')
   debugTrail.value = []
@@ -121,6 +128,11 @@ onPageHidden(resetSurface)
 
 function local(event: PointerEvent) {
   const rect = surface.value!.getBoundingClientRect()
+  if (sidewaysTrackpad.value) {
+    return settings.sidewaysTrackpadTurn === 'left'
+      ? { x: event.clientY - rect.top, y: rect.right - event.clientX }
+      : { x: rect.bottom - event.clientY, y: event.clientX - rect.left }
+  }
   return { x: event.clientX - rect.left, y: event.clientY - rect.top }
 }
 
@@ -128,6 +140,13 @@ function debugPosition(event: PointerEvent) {
   const p = local(event)
   const transform = surface.value ? getComputedStyle(surface.value).transform : 'none'
   return { ...p, transform }
+}
+
+function gesturePoint(event: PointerEvent) {
+  if (!sidewaysTrackpad.value) return { x: event.clientX, y: event.clientY }
+  return settings.sidewaysTrackpadTurn === 'left'
+    ? { x: event.clientY, y: -event.clientX }
+    : { x: -event.clientY, y: event.clientX }
 }
 
 function onDown(event: PointerEvent) {
@@ -144,7 +163,8 @@ function onDown(event: PointerEvent) {
       debugTrail.value = [{ x: pos.x, y: pos.y }]
     }
   }
-  recognizer.down(event.pointerId, event.clientX, event.clientY, event.timeStamp)
+  const pGesture = gesturePoint(event)
+  recognizer.down(event.pointerId, pGesture.x, pGesture.y, event.timeStamp)
 }
 
 function onMove(event: PointerEvent) {
@@ -162,7 +182,8 @@ function onMove(event: PointerEvent) {
       }
     }
     activeMovePointer = event.pointerId
-    recognizer.move(event.pointerId, e.clientX, e.clientY, e.timeStamp)
+    const pGesture = gesturePoint(e)
+    recognizer.move(event.pointerId, pGesture.x, pGesture.y, e.timeStamp)
     activeMovePointer = null
   }
 }
