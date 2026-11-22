@@ -4,7 +4,6 @@ import { computed, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 
 import { pointer, state } from '@/lib/connection'
 import { haptic } from '@/lib/haptics'
 import { beginPointerGesture } from '@/lib/input'
-import { sidewaysTrackpad } from '@/lib/layout'
 import { ScrollPhase } from '@/lib/protocol'
 import { settings } from '@/lib/settings'
 
@@ -14,6 +13,9 @@ import { settings } from '@/lib/settings'
 // finger goes past the end.
 
 /** Finger speed, in px per second, once the handle reaches an end. */
+// Only the dedicated Trackpad page opts into rotated scroll coordinates.
+const props = withDefaults(defineProps<{ sideways?: boolean }>(), { sideways: false })
+
 const HOLD_SPEED = 360
 /** Extra speed for each px the finger is past the end. */
 const HOLD_GAIN = 14
@@ -44,7 +46,7 @@ let began = false
 let holdTimer: ReturnType<typeof setInterval> | undefined
 let lastTick = 0
 
-const scrollPosition = (event: PointerEvent) => !sidewaysTrackpad.value
+const scrollPosition = (event: PointerEvent) => !props.sideways
   ? event.clientY
   : settings.sidewaysTrackpadTurn === 'left' ? -event.clientX : event.clientX
 
@@ -150,7 +152,7 @@ watch(
   },
 )
 watch(() => settings.scrollStrip, abandon)
-watch([sidewaysTrackpad, () => settings.sidewaysTrackpadTurn], abandon)
+watch(() => props.sideways ? settings.sidewaysTrackpadTurn : null, abandon)
 onDeactivated(abandon)
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', onVisibility)
