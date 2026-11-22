@@ -27,7 +27,7 @@ import { hapticsSupported, switchOnly } from '@/lib/haptics'
 import type { Action } from '@/lib/protocol'
 import { lazy } from '@/lib/reload'
 import { screen, startViewing } from '@/lib/screen'
-import { DECK_SIZE, resetSettings, settings, type GestureMap, type GestureSlot, type Settings } from '@/lib/settings'
+import { applyMacGesturePreset, DECK_SIZE, resetSettings, settings, type GestureMap, type GestureSlot, type Settings } from '@/lib/settings'
 import { clearTouchpadDebug } from '@/lib/touchpadDebug'
 import { wakeLockSupported } from '@/lib/wakeLock'
 import { voiceSupported } from '@/lib/voice'
@@ -110,6 +110,11 @@ const SLOTS: { slot: GestureSlot; label: string }[] = [
 ]
 const gesture = ref<{ fingers: 3 | 4; slot: GestureSlot; label: string; draft: Action | null } | null>(null)
 const gestureProblem = computed(() => (gesture.value?.draft ? actionProblem(gesture.value.draft) : ''))
+function useMacGestures() {
+  applyMacGesturePreset()
+  gestureFingers.value = '4'
+  notify('Mac gestures applied: three-finger drag, four-finger spaces and window overview.')
+}
 function mapFor(count: 3 | 4): GestureMap {
   return count === 3 ? settings.threeFinger : settings.fourFinger
 }
@@ -336,6 +341,16 @@ const times = (v: number) => `${v.toFixed(1)}×`
               label="Three-finger drag"
               hint="Move three fingers to drag windows and select text. This replaces three-finger swipes; four-finger gestures still work."
             />
+            <button
+              type="button"
+              class="mt-3 w-full rounded-xl border border-line px-3 py-3 text-left text-[14px] font-medium text-main active:bg-key-down"
+              @click="useMacGestures"
+            >
+              Use Mac gestures: three-finger drag + four-finger swipes
+            </button>
+            <p class="mt-2 text-[12px] leading-snug text-muted">
+              Sets four-finger left/right to switch desktops, up to Mission Control and down to App Exposé. Other preferences stay unchanged.
+            </p>
           </section>
           <Segmented
             v-model="gestureFingers"
