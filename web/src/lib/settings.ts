@@ -92,7 +92,7 @@ export function defaultSettings(): Settings {
     pinchStyle: 'smooth',
     rotateGesture: true,
     smartZoom: false,
-    threeFingerDrag: false,
+    threeFingerDrag: true,
     threeFinger: {
       up: sys('missionControl'),
       down: sys('appExpose'),
@@ -104,10 +104,11 @@ export function defaultSettings(): Settings {
       pinchOut: null,
     },
     fourFinger: {
-      up: sys('launchpad'),
-      down: sys('showDesktop'),
-      left: sys('nextTab'),
-      right: sys('previousTab'),
+      up: sys('missionControl'),
+      down: sys('appExpose'),
+      // Swipe left reveals the space on the right, as on a Mac trackpad.
+      left: sys('spaceRight'),
+      right: sys('spaceLeft'),
       tap: null,
       // As on a Mac trackpad: thumb and three fingers.
       pinchIn: sys('launchpad'),
@@ -212,6 +213,15 @@ function load(): Settings {
 }
 
 export const settings = reactive<Settings>(load())
+
+/** Apply the macOS three-finger drag layout without resetting other preferences. */
+export function applyMacGesturePreset() {
+  settings.threeFingerDrag = true
+  settings.fourFinger.up = sys('missionControl')
+  settings.fourFinger.down = sys('appExpose')
+  settings.fourFinger.left = sys('spaceRight')
+  settings.fourFinger.right = sys('spaceLeft')
+}
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined
 function store() {
