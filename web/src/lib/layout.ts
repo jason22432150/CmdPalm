@@ -9,6 +9,8 @@ const compactQuery = typeof matchMedia === 'function' ? matchMedia('(orientation
 
 export const layout = reactive({
   compact: compactQuery?.matches ?? false,
+  /** Temporarily hide shell chrome while the trackpad occupies the screen. */
+  trackpadExpanded: false,
   portrait: typeof matchMedia === 'function' ? matchMedia('(orientation: portrait)').matches : false,
 })
 
