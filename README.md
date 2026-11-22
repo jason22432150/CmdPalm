@@ -400,18 +400,21 @@ another language.
 | Pinch | Zoom smoothly, as on a Mac trackpad (or ⌘+ and ⌘−) |
 | Turn two fingers | Rotate photos, maps and PDFs |
 | Two-finger double-tap | Smart zoom (turn it on in settings) |
-| Three-finger swipe up / down | Mission Control / App Exposé |
-| Three-finger swipe left / right | Switch spaces |
+| Three-finger swipe up / down | Mission Control / App Exposé (when three-finger drag is off) |
+| Three-finger swipe left / right | Switch spaces (when three-finger drag is off) |
 | Three-finger tap | Middle click |
-| Three-finger move | Drag (turn it on in settings; three-finger swipes then turn off) |
-| Four-finger swipe up / down | Apps (Launchpad on macOS 15) / Show Desktop |
+| Three-finger move | Drag windows and select text (on by default; replaces three-finger swipes) |
+| Four-finger swipe up / down | Mission Control / App Exposé |
+| Four-finger swipe left / right | Switch spaces |
 | Thumb and three fingers pinch / spread | Apps / Show Desktop |
 
 The scroll strip can be short, long or hidden under **Settings → Trackpad →
 Scrolling** on the phone. Use **Scroll strip options** to change its width
 and side, or put it at the screen edge so a finger sliding along the side of
 the phone scrolls. Open **Settings → Gestures** to change gesture actions,
-with separate tabs for three and four fingers. Pointer acceleration is under
+with separate tabs for three and four fingers. **Use Mac gestures** applies
+three-finger drag and four-finger navigation to existing saved devices without
+resetting other preferences. Pointer acceleration is under
 **Trackpad → Pointer & dragging**.
 
 **Modifiers** work three ways: tap for the next key only, double-tap to lock,
