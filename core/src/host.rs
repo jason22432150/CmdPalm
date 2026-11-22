@@ -547,6 +547,21 @@ impl CoreHost {
         Self::dry_run(config, delegate)
     }
 
+    /// Record macOS pointer diagnostics in a bounded, in-memory trace.
+    /// Disabling does not discard captured events, so they can still be exported.
+    pub fn set_touchpad_diagnostics_enabled(&self, enabled: bool) {
+        crate::touchpad_debug::set_enabled(enabled);
+    }
+
+    /// Export the most recent Mac-side pointer diagnostic events as JSON.
+    pub fn touchpad_diagnostics_json(&self) -> String {
+        crate::touchpad_debug::snapshot_json()
+    }
+
+    pub fn clear_touchpad_diagnostics(&self) {
+        crate::touchpad_debug::clear();
+    }
+
     /// Start serving. Returns the port in use.
     pub fn start(&self) -> Result<u16, HostError> {
         let mut running = self.running();

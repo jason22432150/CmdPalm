@@ -21,6 +21,7 @@ mod server;
 mod session;
 mod store;
 pub mod tls;
+pub mod touchpad_debug;
 
 pub use api::{HostConfig, HostDelegate, HostError, HostEvent};
 pub use host::CoreHost;

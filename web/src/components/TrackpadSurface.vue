@@ -8,6 +8,7 @@ import { beginPointerGesture, buttonDown, buttonUp, click, tap } from '@/lib/inp
 import { Key } from '@/lib/keys'
 import { layout, sidewaysTrackpad } from '@/lib/layout'
 import { PointerGain } from '@/lib/pointerGain'
+import { recordGestureMove, recordPointer, recordTouchpadReset } from '@/lib/touchpadDebug'
 import { GestureKind, Mod, ScrollPhase } from '@/lib/protocol'
 import { settings, type GestureMap } from '@/lib/settings'
 import HapticSwitch from './HapticSwitch.vue'
@@ -27,6 +28,11 @@ const reach = computed(() => {
 })
 const touches = reactive(new Map<number, { x: number; y: number }>())
 const dragging = ref(false)
+const debugTrail = ref<{ x: number; y: number }[]>([])
+let debugPrimary: number | null = null
+let activeMovePointer: number | null = null
+let lastTrailFrame = 0
+const MAX_TRAIL_POINTS = 96
 
 const acceleration = new PointerGain()
 const gain = (dx: number, dy: number, dt: number) =>
@@ -56,6 +62,7 @@ const handler: GestureHandler = {
   begin: () => beginPointerGesture(),
   move: (dx, dy, dt) => {
     const g = gain(dx, dy, dt)
+    recordGestureMove(activeMovePointer, dx, dy, dt, g)
     pointer.move(dx * g, dy * g)
   },
   scroll: (phase, dx, dy) => {
@@ -103,13 +110,16 @@ const options = computed(() => ({
 
 const recognizer = new GestureRecognizer(handler, options.value)
 watch(options, (value) => (recognizer.options = value))
-watch([sidewaysTrackpad, () => settings.sidewaysTrackpadTurn], () => recognizer.reset())
+watch([sidewaysTrackpad, () => settings.sidewaysTrackpadTurn], resetSurface)
 function resetSurface() {
+  recordTouchpadReset('deactivated or page hidden')
+  debugTrail.value = []
+  debugPrimary = null
   recognizer.reset()
   dragging.value = false
   touches.clear()
 }
-onBeforeUnmount(() => recognizer.reset())
+onBeforeUnmount(resetSurface)
 // A finger down when the tab changes, control pauses, or the page hides never
 // reports lifting; without this it would count as a second finger on return,
 // turning pointing into scrolling, or leave drag lock visually stuck.
@@ -126,6 +136,12 @@ function local(event: PointerEvent) {
   return { x: event.clientX - rect.left, y: event.clientY - rect.top }
 }
 
+function debugPosition(event: PointerEvent) {
+  const p = local(event)
+  const transform = surface.value ? getComputedStyle(surface.value).transform : 'none'
+  return { ...p, transform }
+}
+
 function gesturePoint(event: PointerEvent) {
   if (!sidewaysTrackpad.value) return { x: event.clientX, y: event.clientY }
   return settings.sidewaysTrackpadTurn === 'left'
@@ -139,6 +155,14 @@ function onDown(event: PointerEvent) {
   surface.value?.setPointerCapture(event.pointerId)
   const p = local(event)
   touches.set(event.pointerId, p)
+  if (settings.touchpadDebug) {
+    const pos = debugPosition(event)
+    recordPointer('pointerdown', event, pos.x, pos.y, touches.size, false, pos.transform)
+    if (debugPrimary === null) {
+      debugPrimary = event.pointerId
+      debugTrail.value = [{ x: pos.x, y: pos.y }]
+    }
+  }
   const pGesture = gesturePoint(event)
   recognizer.down(event.pointerId, pGesture.x, pGesture.y, event.timeStamp)
 }
@@ -149,18 +173,38 @@ function onMove(event: PointerEvent) {
   if (settings.showTouches) touches.set(event.pointerId, local(event))
   const events = typeof event.getCoalescedEvents === 'function' ? event.getCoalescedEvents() : []
   for (const e of events.length ? events : [event]) {
-    const p = gesturePoint(e)
-    recognizer.move(event.pointerId, p.x, p.y, e.timeStamp)
+    if (settings.touchpadDebug) {
+      const pos = debugPosition(e)
+      recordPointer('pointermove', e, pos.x, pos.y, touches.size, events.length > 0, pos.transform)
+      if (debugPrimary === event.pointerId && e.timeStamp - lastTrailFrame >= 16) {
+        lastTrailFrame = e.timeStamp
+        debugTrail.value = [...debugTrail.value.slice(-(MAX_TRAIL_POINTS - 1)), { x: pos.x, y: pos.y }]
+      }
+    }
+    activeMovePointer = event.pointerId
+    const pGesture = gesturePoint(e)
+    recognizer.move(event.pointerId, pGesture.x, pGesture.y, e.timeStamp)
+    activeMovePointer = null
   }
 }
 
 function onUp(event: PointerEvent) {
   if (!touches.delete(event.pointerId)) return
+  if (settings.touchpadDebug) {
+    const pos = debugPosition(event)
+    recordPointer('pointerup', event, pos.x, pos.y, touches.size, false, pos.transform)
+    if (debugPrimary === event.pointerId) debugPrimary = null
+  }
   recognizer.up(event.pointerId, event.timeStamp)
 }
 
 function onCancel(event: PointerEvent) {
   if (!touches.delete(event.pointerId)) return
+  if (settings.touchpadDebug) {
+    const pos = debugPosition(event)
+    recordPointer(event.type === 'lostpointercapture' ? 'lostpointercapture' : 'pointercancel', event, pos.x, pos.y, touches.size, false, pos.transform)
+    if (debugPrimary === event.pointerId) debugPrimary = null
+  }
   recognizer.cancel(event.pointerId)
 }
 </script>
@@ -190,6 +234,23 @@ function onCancel(event: PointerEvent) {
         :style="{ transform: `translate3d(${t.x}px, ${t.y}px, 0)` }"
       />
     </template>
+    <svg
+      v-if="settings.touchpadDebug && debugTrail.length"
+      class="pointer-events-none absolute inset-0 h-full w-full"
+      :viewBox="`0 0 ${surface?.clientWidth || 1} ${surface?.clientHeight || 1}`"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <polyline
+        :points="debugTrail.map((p) => `${p.x},${p.y}`).join(' ')"
+        fill="none"
+        stroke="#45d8ff"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        vector-effect="non-scaling-stroke"
+      />
+    </svg>
     <slot />
     <HapticSwitch />
   </label>

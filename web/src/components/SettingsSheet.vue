@@ -28,6 +28,7 @@ import type { Action } from '@/lib/protocol'
 import { lazy } from '@/lib/reload'
 import { screen, startViewing } from '@/lib/screen'
 import { DECK_SIZE, resetSettings, settings, type GestureMap, type GestureSlot, type Settings } from '@/lib/settings'
+import { clearTouchpadDebug } from '@/lib/touchpadDebug'
 import { wakeLockSupported } from '@/lib/wakeLock'
 import { voiceSupported } from '@/lib/voice'
 import ActionEditor from './ActionEditor.vue'
@@ -227,6 +228,17 @@ const times = (v: number) => `${v.toFixed(1)}×`
             <Toggle v-model="settings.tapAndDrag" label="Tap, then drag" hint="Tap and quickly touch again to start a drag." />
             <Toggle v-model="settings.dragLock" label="Drag lock" hint="Drags continue after lifting your finger until you tap." />
             <Toggle v-model="settings.showTouches" label="Show touches" />
+            <Toggle
+              v-model="settings.touchpadDebug"
+              label="Touchpad debug mode"
+              hint="Show finger trails and local event counters on the trackpad. Opt-in; raw coordinates stay on this phone until you export JSON."
+            />
+            <button
+              v-if="settings.touchpadDebug"
+              type="button"
+              class="my-2 rounded-lg border border-line px-3 py-2 text-[13px]"
+              @click="clearTouchpadDebug"
+            >Clear touchpad debug log</button>
           </section>
           <h3 class="section">Touch feedback</h3>
           <section class="card">

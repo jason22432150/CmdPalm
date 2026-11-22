@@ -600,6 +600,16 @@ impl<S: EventSink> Engine<S> {
         // Interrupts change the moment Pause is pressed or a device leaves,
         // while the matching command can wait behind a long queue of deck steps.
         if input != Input::ReleaseAll && (self.paused || self.interrupts.should_stop(session)) {
+            if let Input::Move { dx, dy } = &input {
+                if crate::touchpad_debug::enabled() {
+                    crate::touchpad_debug::record("engineDropped", serde_json::json!({
+                        "session": session,
+                        "dx": dx,
+                        "dy": dy,
+                        "reason": if self.paused { "paused" } else { "sessionStopped" },
+                    }));
+                }
+            }
             return;
         }
         // Clicks, keys and scrolls act where the pointer is meant to be now.
@@ -609,6 +619,15 @@ impl<S: EventSink> Engine<S> {
             self.post_move(dx, dy);
         }
         if !matches!(input, Input::ReleaseAll | Input::Touch) && !self.sink.can_post() {
+            if let Input::Move { dx, dy } = &input {
+                if crate::touchpad_debug::enabled() {
+                    crate::touchpad_debug::record("accessibilityDenied", serde_json::json!({
+                        "session": session,
+                        "dx": dx,
+                        "dy": dy,
+                    }));
+                }
+            }
             self.notice(Notice::NoPermission(session), now);
         }
         if matches!(
@@ -635,7 +654,7 @@ impl<S: EventSink> Engine<S> {
             Input::Button { button, op: PressOp::Up, .. } => self.button_up(session, button),
             Input::Button { button, op: PressOp::Click, mods } => self.click(button, 1, mods, now),
             Input::Click { button, clicks, mods } => self.click(button, clicks, mods, now),
-            Input::Move { dx, dy } => self.pointer_move(dx, dy, now),
+            Input::Move { dx, dy } => self.pointer_move(session, dx, dy, now),
             Input::Scroll { phase, dx, dy } => self.scroll(session, phase, dx, dy, now),
             Input::Fling { vx, vy } => self.fling(session, vx, vy, now),
             Input::Touch => self.stop_momentum(),
@@ -922,19 +941,38 @@ impl<S: EventSink> Engine<S> {
             .find(|b| self.os_buttons.contains_key(b))
     }
 
-    fn pointer_move(&mut self, dx: f64, dy: f64, now: Instant) {
+    fn pointer_move(&mut self, session: SessionId, dx: f64, dy: f64, now: Instant) {
         if !dx.is_finite() || !dy.is_finite() || (dx == 0.0 && dy == 0.0) {
             return;
         }
         if let Some((x, y)) = self.motion.advance(now) {
             self.post_move(x, y);
         }
-        self.motion.push(dx.clamp(-MAX_MOTION, MAX_MOTION), dy.clamp(-MAX_MOTION, MAX_MOTION), now);
+        let queued_x = dx.clamp(-MAX_MOTION, MAX_MOTION);
+        let queued_y = dy.clamp(-MAX_MOTION, MAX_MOTION);
+        self.motion.push(queued_x, queued_y, now);
+        if crate::touchpad_debug::enabled() {
+            crate::touchpad_debug::record("engineQueued", serde_json::json!({
+                "session": session,
+                "dx": dx,
+                "dy": dy,
+                "queuedX": queued_x,
+                "queuedY": queued_y,
+                "pacerRemainingX": self.motion.remaining.0,
+                "pacerRemainingY": self.motion.remaining.1,
+            }));
+        }
     }
 
     fn post_move(&mut self, dx: f64, dy: f64) {
         if dx == 0.0 && dy == 0.0 {
             return;
+        }
+        if crate::touchpad_debug::enabled() {
+            crate::touchpad_debug::record("enginePosted", serde_json::json!({
+                "dx": dx,
+                "dy": dy,
+            }));
         }
         let flags = self.flags();
         let drag = self.held_button();
