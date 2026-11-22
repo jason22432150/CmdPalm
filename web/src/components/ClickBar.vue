@@ -7,7 +7,7 @@ import type { MouseButton } from '@/lib/protocol'
 import { settings } from '@/lib/settings'
 import HapticSwitch from './HapticSwitch.vue'
 
-withDefaults(defineProps<{ vertical?: boolean }>(), { vertical: false })
+withDefaults(defineProps<{ vertical?: boolean; dense?: boolean }>(), { vertical: false, dense: false })
 
 // Physical-style buttons: hold one with a thumb and move with another finger
 // to drag.
@@ -48,7 +48,7 @@ function onClick(button: MouseButton, event: MouseEvent) {
 </script>
 
 <template>
-  <div class="grid gap-1.5" :class="vertical ? 'w-24 shrink-0 grid-rows-[3fr_2fr]' : 'h-14 grid-cols-[3fr_2fr]'">
+  <div class="grid gap-1.5" :class="vertical ? (dense ? 'w-[72px] shrink-0 grid-rows-[3fr_2fr]' : 'w-24 shrink-0 grid-rows-[3fr_2fr]') : (dense ? 'h-11 grid-cols-[3fr_2fr]' : 'h-14 grid-cols-[3fr_2fr]')">
     <label
       v-for="button in ['left', 'right'] as const"
       :key="button"

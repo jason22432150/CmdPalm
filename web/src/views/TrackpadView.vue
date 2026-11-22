@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Keyboard, KeyboardOff } from '@lucide/vue'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { Keyboard, KeyboardOff, Maximize2, Minimize2, SlidersHorizontal } from '@lucide/vue'
+import { computed, nextTick, onBeforeUnmount, onDeactivated, onMounted, ref } from 'vue'
 import ClickBar from '@/components/ClickBar.vue'
 import Composer from '@/components/Composer.vue'
 import ModifierStrip from '@/components/ModifierStrip.vue'
@@ -13,6 +13,8 @@ import { clearTouchpadDebug, downloadTouchpadDebug, touchpadDebug } from '@/lib/
 const typing = ref(false)
 const composer = ref<InstanceType<typeof Composer>>()
 const touched = ref(false)
+// Shortcut keys live in an optional rail so the trackpad is larger by default.
+const controlsVisible = ref(false)
 const root = ref<HTMLElement>()
 const size = ref({ width: 0, height: 0 })
 let observer: ResizeObserver | undefined
@@ -22,7 +24,8 @@ onMounted(() => {
   })
   if (root.value) observer.observe(root.value)
 })
-onBeforeUnmount(() => observer?.disconnect())
+onBeforeUnmount(() => { observer?.disconnect(); layout.trackpadExpanded = false })
+onDeactivated(() => { layout.trackpadExpanded = false; controlsVisible.value = false })
 
 const compact = computed(() => layout.compact || sidewaysTrackpad.value)
 const sidewaysStyle = computed(() => sidewaysTrackpad.value ? {
@@ -34,7 +37,13 @@ const sidewaysStyle = computed(() => sidewaysTrackpad.value ? {
 // On a landscape phone the click buttons sit right of the trackpad.
 const atEdge = computed(() => !compact.value || typing.value || settings.scrollStripSide !== 'right' || !settings.clickButtons)
 
+function toggleExpanded() {
+  layout.trackpadExpanded = !layout.trackpadExpanded
+  if (layout.trackpadExpanded) controlsVisible.value = false
+}
+
 async function toggleTyping() {
+  if (!typing.value) layout.trackpadExpanded = false
   typing.value = !typing.value
   if (typing.value) {
     await nextTick()
@@ -45,22 +54,13 @@ async function toggleTyping() {
 
 <template>
   <div ref="root" class="relative h-full w-full overflow-hidden">
-    <div class="flex h-full flex-col gap-2 px-2 pt-1 pb-2" :class="[compact && 'pt-2', sidewaysTrackpad && 'absolute top-1/2 left-1/2']" :style="sidewaysStyle">
+    <div class="flex h-full flex-col gap-1.5 px-2 pt-1 pb-2" :class="[compact && 'pt-2', sidewaysTrackpad && 'absolute top-1/2 left-1/2']" :style="sidewaysStyle">
     <!-- Landscape phones put the keys and buttons beside the trackpad. -->
     <div class="flex min-h-0 flex-1 gap-2" :class="!compact && 'flex-col'">
-      <ModifierStrip v-if="!typing" :vertical="compact">
-        <button
-          type="button"
-          class="key grid shrink-0 place-items-center rounded-[9px] bg-key text-muted active:bg-key-down"
-          :class="compact ? 'min-h-0 flex-1' : 'w-12'"
-          aria-label="Type on the Mac"
-          @click="toggleTyping"
-        >
-          <Keyboard :size="19" />
-        </button>
-      </ModifierStrip>
+      <ModifierStrip v-if="!typing && controlsVisible" :vertical="compact" />
 
-      <TrackpadSurface class="min-h-0 min-w-0 flex-1" :edge="atEdge" :sideways="sidewaysTrackpad" @pointerdown.capture="touched = true">
+      <div class="relative min-h-0 min-w-0 flex-1">
+      <TrackpadSurface class="min-h-0 min-w-0" :edge="atEdge" :sideways="sidewaysTrackpad" @pointerdown.capture="touched = true">
         <ScrollRail v-if="settings.scrollStrip !== 'off'" :sideways="sidewaysTrackpad" />
         <div
           v-if="!touched"
@@ -75,7 +75,45 @@ async function toggleTyping() {
         </div>
       </TrackpadSurface>
 
-      <ClickBar v-if="settings.clickButtons && !typing" :vertical="compact" />
+      <!-- Floating controls do not consume trackpad height or send pointer gestures. -->
+      <div
+        class="pointer-events-none absolute top-2 z-10 flex gap-1.5"
+        :class="settings.scrollStrip !== 'off' && settings.scrollStripSide === 'left' ? 'right-2' : 'left-2'"
+      >
+        <button
+          type="button"
+          class="pointer-events-auto grid size-11 place-items-center rounded-xl border border-line bg-surface/90 text-muted shadow-sm backdrop-blur-sm active:bg-key-down"
+          :aria-label="layout.trackpadExpanded ? 'Restore trackpad layout' : 'Expand trackpad'"
+          :title="layout.trackpadExpanded ? 'Restore trackpad layout' : 'Expand trackpad'"
+          @click="toggleExpanded"
+        >
+          <Minimize2 v-if="layout.trackpadExpanded" :size="18" />
+          <Maximize2 v-else :size="18" />
+        </button>
+        <button
+          v-if="!typing"
+          type="button"
+          class="pointer-events-auto grid size-11 place-items-center rounded-xl border border-line bg-surface/90 text-muted shadow-sm backdrop-blur-sm active:bg-key-down"
+          :class="controlsVisible && 'text-accent'"
+          :aria-label="controlsVisible ? 'Hide shortcut keys' : 'Show shortcut keys'"
+          :aria-pressed="controlsVisible"
+          @click="controlsVisible = !controlsVisible"
+        >
+          <SlidersHorizontal :size="18" />
+        </button>
+        <button
+          v-if="!typing"
+          type="button"
+          class="pointer-events-auto grid size-11 place-items-center rounded-xl border border-line bg-surface/90 text-muted shadow-sm backdrop-blur-sm active:bg-key-down"
+          aria-label="Type on the Mac"
+          @click="toggleTyping"
+        >
+          <Keyboard :size="18" />
+        </button>
+      </div>
+      </div>
+
+      <ClickBar v-if="settings.clickButtons && !typing" :vertical="compact" dense />
     </div>
 
     <div v-if="settings.touchpadDebug" class="rounded-xl border border-sky-400/40 bg-surface-2 p-2 text-[11px]" role="status" aria-label="Touchpad diagnostics">
@@ -105,8 +143,3 @@ async function toggleTyping() {
   </div>
 </template>
 
-<style scoped>
-.key {
-  box-shadow: 0 1px 0 rgb(0 0 0 / 0.35);
-}
-</style>

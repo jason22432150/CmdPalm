@@ -25,6 +25,7 @@ const MediaView = lazy(() => import('@/views/MediaView.vue'))
 const views = { trackpad: TrackpadView, keyboard: KeyboardView, display: DisplayView, deck: DeckView, apps: AppsView, media: MediaView }
 
 const showSettings = ref(false)
+const expandedTrackpad = computed(() => settings.tab === 'trackpad' && layout.trackpadExpanded)
 
 /** Reconnecting for long enough that the Mac is probably asleep or off. */
 const LOST_AFTER_MS = 6000
@@ -81,10 +82,10 @@ onMounted(() => {
 <template>
   <div class="app flex flex-col overflow-hidden">
     <template v-if="view === 'shell'">
-      <StatusBar v-if="!layout.compact" @settings="showSettings = true" />
+      <StatusBar v-if="!layout.compact && !expandedTrackpad" @settings="showSettings = true" />
       <div class="flex min-h-0 flex-1">
-        <SideRail v-if="layout.compact" @settings="showSettings = true" />
-        <main class="relative min-h-0 min-w-0 flex-1" :class="layout.compact ? 'main-compact' : 'safe-x'">
+        <SideRail v-if="layout.compact && !expandedTrackpad" @settings="showSettings = true" />
+        <main class="relative min-h-0 min-w-0 flex-1" :class="layout.compact && !expandedTrackpad ? 'main-compact' : 'safe-x'">
           <KeepAlive>
             <component :is="views[settings.tab]" :key="settings.tab" />
           </KeepAlive>
@@ -101,7 +102,7 @@ onMounted(() => {
           <OfflineView v-if="lost" :patience="0" class="absolute inset-0 z-20" />
         </main>
       </div>
-      <TabBar v-if="!layout.compact" />
+      <TabBar v-if="!layout.compact && !expandedTrackpad" />
       <SettingsSheet v-if="showSettings" @close="showSettings = false" />
     </template>
 
