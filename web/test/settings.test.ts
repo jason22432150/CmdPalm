@@ -1,7 +1,50 @@
 import { describe, expect, it } from 'vitest'
-import { defaultSettings, migrate } from '../src/lib/settings'
+import { applyMacGesturePreset, defaultSettings, migrate, settings } from '../src/lib/settings'
 
 describe('migrating stored settings', () => {
+  it('defaults to Mac three-finger drag and four-finger desktop navigation', () => {
+    const defaults = defaultSettings()
+    expect(defaults.threeFingerDrag).toBe(true)
+    expect(defaults.fourFinger).toMatchObject({
+      left: { kind: 'system', name: 'spaceRight' },
+      right: { kind: 'system', name: 'spaceLeft' },
+      up: { kind: 'system', name: 'missionControl' },
+      down: { kind: 'system', name: 'appExpose' },
+    })
+  })
+
+  it('applies the Mac gesture preset without clearing unrelated preferences', () => {
+    const previous = {
+      threeFingerDrag: settings.threeFingerDrag,
+      fourFinger: structuredClone(settings.fourFinger),
+      scrollSpeed: settings.scrollSpeed,
+    }
+    try {
+      settings.threeFingerDrag = false
+      settings.fourFinger.left = { kind: 'system', name: 'nextTab' }
+      settings.fourFinger.right = { kind: 'system', name: 'previousTab' }
+      settings.scrollSpeed = 2
+      applyMacGesturePreset()
+      expect(settings.threeFingerDrag).toBe(true)
+      expect(settings.fourFinger.left).toEqual({ kind: 'system', name: 'spaceRight' })
+      expect(settings.fourFinger.right).toEqual({ kind: 'system', name: 'spaceLeft' })
+      expect(settings.scrollSpeed).toBe(2)
+    } finally {
+      settings.threeFingerDrag = previous.threeFingerDrag
+      settings.fourFinger = previous.fourFinger
+      settings.scrollSpeed = previous.scrollSpeed
+    }
+  })
+
+  it('preserves previously saved gesture preferences', () => {
+    const out = migrate({
+      threeFingerDrag: false,
+      fourFinger: { left: { kind: 'system', name: 'nextTab' } },
+    })
+    expect(out.threeFingerDrag).toBe(false)
+    expect(out.fourFinger.left).toEqual({ kind: 'system', name: 'nextTab' })
+  })
+
   it('keeps other settings when a gesture map is null', () => {
     const out = migrate({ pointerSpeed: 2, theme: 'light', threeFinger: null, fourFinger: null })
     expect(out.pointerSpeed).toBe(2)
