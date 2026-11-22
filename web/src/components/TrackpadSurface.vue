@@ -6,7 +6,7 @@ import { haptic, holdPointer } from '@/lib/haptics'
 import { onPageHidden } from '@/lib/heldPointers'
 import { beginPointerGesture, buttonDown, buttonUp, click, tap } from '@/lib/input'
 import { Key } from '@/lib/keys'
-import { layout, sidewaysTrackpad } from '@/lib/layout'
+import { layout } from '@/lib/layout'
 import { PointerGain } from '@/lib/pointerGain'
 import { recordGestureMove, recordPointer, recordTouchpadReset } from '@/lib/touchpadDebug'
 import { GestureKind, Mod, ScrollPhase } from '@/lib/protocol'
@@ -14,7 +14,8 @@ import { settings, type GestureMap } from '@/lib/settings'
 import HapticSwitch from './HapticSwitch.vue'
 
 /** `edge`: the scroll strip's side of the trackpad is at the screen edge. */
-const props = withDefaults(defineProps<{ edge?: boolean }>(), { edge: true })
+// Rotation is opt-in: only the dedicated Trackpad page passes sideways=true.
+const props = withDefaults(defineProps<{ edge?: boolean; sideways?: boolean }>(), { edge: true, sideways: false })
 
 const surface = ref<HTMLElement>()
 
@@ -110,7 +111,7 @@ const options = computed(() => ({
 
 const recognizer = new GestureRecognizer(handler, options.value)
 watch(options, (value) => (recognizer.options = value))
-watch([sidewaysTrackpad, () => settings.sidewaysTrackpadTurn], resetSurface)
+watch(() => props.sideways ? settings.sidewaysTrackpadTurn : null, resetSurface)
 function resetSurface() {
   recordTouchpadReset('deactivated or page hidden')
   debugTrail.value = []
@@ -128,7 +129,7 @@ onPageHidden(resetSurface)
 
 function local(event: PointerEvent) {
   const rect = surface.value!.getBoundingClientRect()
-  if (sidewaysTrackpad.value) {
+  if (props.sideways) {
     return settings.sidewaysTrackpadTurn === 'left'
       ? { x: event.clientY - rect.top, y: rect.right - event.clientX }
       : { x: rect.bottom - event.clientY, y: event.clientX - rect.left }
@@ -143,7 +144,7 @@ function debugPosition(event: PointerEvent) {
 }
 
 function gesturePoint(event: PointerEvent) {
-  if (!sidewaysTrackpad.value) return { x: event.clientX, y: event.clientY }
+  if (!props.sideways) return { x: event.clientX, y: event.clientY }
   return settings.sidewaysTrackpadTurn === 'left'
     ? { x: event.clientY, y: -event.clientX }
     : { x: -event.clientY, y: event.clientX }
