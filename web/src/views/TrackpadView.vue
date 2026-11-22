@@ -60,8 +60,8 @@ async function toggleTyping() {
         </button>
       </ModifierStrip>
 
-      <TrackpadSurface class="min-h-0 min-w-0 flex-1" :edge="atEdge" @pointerdown.capture="touched = true">
-        <ScrollRail v-if="settings.scrollStrip !== 'off'" />
+      <TrackpadSurface class="min-h-0 min-w-0 flex-1" :edge="atEdge" :sideways="sidewaysTrackpad" @pointerdown.capture="touched = true">
+        <ScrollRail v-if="settings.scrollStrip !== 'off'" :sideways="sidewaysTrackpad" />
         <div
           v-if="!touched"
           class="pointer-events-none absolute inset-0 grid place-items-center px-10 text-center text-[13px] leading-relaxed text-muted transition-opacity"
